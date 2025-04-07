@@ -3,12 +3,14 @@ package traben.solid_mobs.mixin;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.damage.DamageSources;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
@@ -47,30 +49,31 @@ public abstract class MixinBlock {
                                 for (Entity cushion : fellOnEntities) {
                                     //                            for (Entity cushion :
 //                                    fellOnEntities) {
-                                    if ((cushion.getType().equals(EntityType.SLIME) || cushion.getType().equals(EntityType.MAGMA_CUBE))
-                                            && solidMobsConfigData.bouncySlimes
-                                            && !entity.bypassesLandingEffects()) {
-                                        //bounceUp(entity);
-                                        cancel = true;
+                                    if(mg$playerCheck(cushion)) {
+                                        if ((cushion.getType().equals(EntityType.SLIME) || cushion.getType().equals(EntityType.MAGMA_CUBE))
+                                                && solidMobsConfigData.bouncySlimes
+                                                && !entity.bypassesLandingEffects()) {
+                                            //bounceUp(entity);
+                                            cancel = true;
 
-                                    } else if (solidMobsConfigData.fallDamageSharedWithLandedOnMob) {
-                                        //just apply to first found no need to be picky
+                                        } else if (solidMobsConfigData.fallDamageSharedWithLandedOnMob) {
+                                            //just apply to first found no need to be picky
 
-                                        //get damage source in case of possible AI need to retaliate or flee damage source
-                                        DamageSource source;
-                                        DamageSources sources = entity.getDamageSources();
-                                        if (entity instanceof PlayerEntity plyr) {
-                                            source = sources.playerAttack(plyr);
-                                        } else if (entity instanceof LivingEntity alive) {
-                                            source = sources.mobAttack(alive);
-                                        } else {
-                                            source = sources.fall();
+                                            //get damage source in case of possible AI need to retaliate or flee damage source
+                                            DamageSource source;
+                                            DamageSources sources = entity.getDamageSources();
+                                            if (entity instanceof PlayerEntity plyr) {
+                                                source = sources.playerAttack(plyr);
+                                            } else if (entity instanceof LivingEntity alive) {
+                                                source = sources.mobAttack(alive);
+                                            } else {
+                                                source = sources.fall();
+                                            }
+                                            entity.handleFallDamage(fallDistance, 1.0F - solidMobsConfigData.getFallAbsorbAmount(), sources.fall());
+                                            cushion.handleFallDamage(fallDistance, solidMobsConfigData.getFallAbsorbAmount(), source);
+                                            cancel = true;
                                         }
-                                        entity.handleFallDamage(fallDistance, 1.0F - solidMobsConfigData.getFallAbsorbAmount(), sources.fall());
-                                        cushion.handleFallDamage(fallDistance, solidMobsConfigData.getFallAbsorbAmount(), source);
-                                        cancel = true;
                                     }
-
                                 }
                             }
                         } catch (Exception ignored) {
@@ -98,11 +101,13 @@ public abstract class MixinBlock {
                             for (Entity cushion : fellOnEntities) {
                                 //                            for (Entity cushion :
 //                                    fellOnEntities) {
-                                if ((cushion.getType().equals(EntityType.SLIME) || cushion.getType().equals(EntityType.MAGMA_CUBE))
-                                        && !entity.bypassesLandingEffects()) {
-                                    sm$bounceUp(entity);
-                                    ci.cancel();
-                                    break;
+                                if(mg$playerCheck(cushion)) {
+                                    if ((cushion.getType().equals(EntityType.SLIME) || cushion.getType().equals(EntityType.MAGMA_CUBE))
+                                            && !entity.bypassesLandingEffects()) {
+                                        sm$bounceUp(entity);
+                                        ci.cancel();
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -124,6 +129,20 @@ public abstract class MixinBlock {
             entity.setVelocity(vec3d.x, Math.max(-vec3d.y, vec3d.y) * d, vec3d.z);
         }
 
+    }
+    
+    @Unique
+    private boolean mg$playerCheck(Entity entity) {
+        if(entity instanceof PlayerEntity) {
+            return true;
+        }
+        if(entity instanceof ServerPlayerEntity) {
+            return true;
+        }
+        if(entity instanceof ClientPlayerEntity) {
+            return true;
+        }
+        return false;
     }
 
 }
