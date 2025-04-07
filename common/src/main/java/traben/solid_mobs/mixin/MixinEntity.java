@@ -133,7 +133,7 @@ public abstract class MixinEntity {
 //                     vanillaRiders) {
 //                    colliders.remove(rider);
 //                }
-                            System.out.println("Possible riders: \n" + colliders);
+                            //System.out.println("Possible riders: \n" + colliders);
                             for (Entity possibleStandingMob : colliders) {
                                 if(mg$playerCheck((Entity)(Object)this) || mg$playerCheck(possibleStandingMob)) {
                                     if (possibleStandingMob.isLiving()
