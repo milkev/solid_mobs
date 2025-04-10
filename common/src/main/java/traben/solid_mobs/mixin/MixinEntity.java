@@ -65,8 +65,6 @@ public abstract class MixinEntity {
     @Shadow
     public abstract boolean isPlayer();
 
-    @Shadow public abstract boolean isPartOf(Entity entity);
-    
     @Unique
     private boolean mg$playerCheck(Entity entity) {
         if(entity instanceof PlayerEntity) {
@@ -92,11 +90,14 @@ public abstract class MixinEntity {
             if (solidMobsConfigData.canUseMod(world)) {
                 boolean collides = true;
                 EntityType<?> thisType = getType();
-                if (SolidMobsMain.isExemptType(thisType)) { // || EXEMPT_ENTITIES.contains(other.getType().toString())) {
+                //blacklist will never be respected unless we check both entities
+                if (SolidMobsMain.isExemptType(thisType) || SolidMobsMain.isExemptType(other.getType())) {
                     collides = false;
+                    cir.setReturnValue(collides);
                 } else if (isPlayer() && other.isPlayer() && !solidMobsConfigData.allowPlayerCollisions) {
                     //only affect player on player collisions we still need other things to collide with players so PLAYER cannot be in exempt list
                     collides = false;
+                    cir.setReturnValue(collides);
                 }
                 if (solidMobsConfigData.platformMode && collides) {
                     if (isSneaking()) {
